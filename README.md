@@ -25,7 +25,7 @@ python read_tweets.py --l ru
 ```
 
 
-To clean the textual data:
+To clean the textual data in texts_*.csv:
 ```sh
 python clean_text.py --l de --data_dir data/ 
 ```
