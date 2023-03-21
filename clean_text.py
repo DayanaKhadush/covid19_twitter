@@ -1,5 +1,4 @@
 """Preprocess textual content from hydrated tweets"""
-
 import pandas as pd
 import argparse
 import logging
