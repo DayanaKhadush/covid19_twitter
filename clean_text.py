@@ -68,6 +68,8 @@ def clean(texts):
         text = re.sub(' +', ' ', text)
         text = text.replace("\n", ".")
         text = text.replace(".+", ".")
+
+        # remove all punktuation at the beginning
         text = re.sub('^([^\w]+)', '', text)
         if len(text.split()) >= 3:
             current.append(text)
