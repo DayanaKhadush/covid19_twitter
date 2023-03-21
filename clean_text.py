@@ -36,18 +36,39 @@ def clean(texts):
     import demoji
 
     current = []
-    for text in texts:
+    for i, text in enumerate(texts):
+        if i % 1000 == 0:
+            print(i)
         if any(sw in text.lower() for sw in stop_words):
             continue
+        # remove links
         text = re.sub(r"(?:http?\://|https?\://|www)\S+", " ", text)
+
+        # hide usernames
         text = re.sub(r"(?:\@)\S+", "@username", text)
+
+        # remove emojis
         text = demoji.replace(text, " ")
-        # text = emoji.demojize(text)
-        # text = re.sub(r":\S*:", " ", text)
-        text = re.sub(r'\n+', '\n ', text)  # remove multiple newlines
+        #text = emoji.demojize(text)
+        #text = re.sub(r":\S*:", " ", text)
+
+        # remove retweets chain
+        text = re.sub("^(\@username )*", "", text)
+
+        # remove one word lines
+        text = re.sub(r'\\n', '\n', text)
+        text = re.sub('\n(?:[^\s]+)\n', "", text)
+        text = re.sub('^(?:[^\s]+)\n', "", text)
+
+        # remove newlines and punctuation between
+        text = re.sub(r'^(?:[^\w]*\n+)', '\n', text)
+        text = re.sub(r'(?:\n+[^\w]*\n+)', '\n', text)
+        text = re.sub(r'(?:\s+\n+\s+)', '\n', text)
         text = text.replace(".\n", ". ")
         text = re.sub(' +', ' ', text)
-        text = re.sub("^(\@username )*", "", text)
+        text = text.replace("\n", ".")
+        text = text.replace(".+", ".")
+        text = re.sub('^([^\w]+)', '', text)
         if len(text.split()) >= 3:
             current.append(text)
     return current
@@ -64,12 +85,13 @@ def main():
         wordcloud(hashtags(cur['tweets']), lang, inputs.data_dir)
 
     cur = clean(list(cur['tweets']))
-
     if inputs.hashtags:
         wordcloud(hashtags(pd.Series(cur)), lang, inputs.data_dir, n=1)
     logger.info(f"Total number: {len(cur)}")
-    pd.DataFrame(cur).to_csv(f'{inputs.data_dir}cleaned_{lang}.csv')
-
+    # pd.DataFrame(cur).to_csv(f'{inputs.data_dir}cleaned_{lang}.csv')
+    with open(f'{inputs.data_dir}cleaned_{lang}.txt', 'w', encoding='utf-8') as f:
+        for line in cur:
+            f.write(line + '\n')
 
 def hashtags(texts):
     import numpy as np

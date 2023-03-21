@@ -29,6 +29,6 @@ To clean the textual data in texts_*.csv:
 ```sh
 python clean_text.py --l de --data_dir data/ 
 ```
-cleaned_*.csv are for the training
+cleaned_*.txt are for the training
 
 (install twarc, pandas, WordCloud, emoji)
