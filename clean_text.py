@@ -4,6 +4,8 @@ import argparse
 import logging
 import re
 
+from nltk import tokenize
+import tokenize_uk
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -31,7 +33,7 @@ def parse_args():
     return args
 
 
-def clean(texts):
+def clean(texts, uk=False):
     stop_words = ['читать', 'книга', 'магия', 'чтопочитать', 'fantasy', 'reading', 'book', 'книга', 'фэнтези', 'читаем']
     import demoji
 
@@ -57,22 +59,33 @@ def clean(texts):
 
         # remove one word lines
         text = re.sub(r'\\n', '\n', text)
-        text = re.sub('\n(?:[^\s]+)\n', "", text)
-        text = re.sub('^(?:[^\s]+)\n', "", text)
+        text = re.sub('\s*\n[^\s]*\s*\n', '\n', text)
+        text = re.sub('^(?:\s*[^\s]*\s*)\n', '\n', text)
 
         # remove newlines and punctuation between
-        text = re.sub(r'^(?:[^\w]*\n+)', '\n', text)
-        text = re.sub(r'(?:\n+[^\w]*\n+)', '\n', text)
-        text = re.sub(r'(?:\s+\n+\s+)', '\n', text)
+        text = re.sub(r'^[^\w]*\n+', '\n', text)
+        text = re.sub(r'\n+[^\w]*\n+', '\n', text)
+        text = re.sub(r'\s*\n+\s*', '\n', text)
         text = text.replace(".\n", ". ")
         text = re.sub(' +', ' ', text)
-        text = text.replace("\n", ".")
-        text = text.replace(".+", ".")
-
+        text = text.replace("\n", ". ")
+        text = text.replace("(.+|(. )+)+", ". ")
         # remove all punktuation at the beginning
         text = re.sub('^([^\w]+)', '', text)
-        if len(text.split()) >= 3:
-            current.append(text)
+
+        try:
+            if not uk:
+                sent = tokenize.sent_tokenize(text)
+                sent = [x for x in sent if len(x.split()) >= 3]
+            else:
+                sent = tokenize_uk.tokenize_text(text)
+                sent = [x for x in sent[0] if len([y for y in x if bool(re.search('\w', y))]) >= 3]
+                sent = [" ".join(x) for x in sent]
+                sent = [re.sub(' (\.|,|!|\?|-)', '\g<1>', x) for x in sent]
+                sent = [re.sub(' ,', ',', x) for x in sent]
+            current += sent
+        except:
+            pass
     return current
 
 
@@ -86,14 +99,18 @@ def main():
     if inputs.hashtags:
         wordcloud(hashtags(cur['tweets']), lang, inputs.data_dir)
 
-    cur = clean(list(cur['tweets']))
+    cur = clean(list(cur['tweets']) , lang == 'uk')
     if inputs.hashtags:
         wordcloud(hashtags(pd.Series(cur)), lang, inputs.data_dir, n=1)
     logger.info(f"Total number: {len(cur)}")
     # pd.DataFrame(cur).to_csv(f'{inputs.data_dir}cleaned_{lang}.csv')
+    print(len(cur))
+    cur = set(cur)
+    print(len(cur))
     with open(f'{inputs.data_dir}cleaned_{lang}.txt', 'w', encoding='utf-8') as f:
         for line in cur:
             f.write(line + '\n')
+
 
 def hashtags(texts):
     import numpy as np
